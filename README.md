@@ -148,30 +148,14 @@ python example_usage.py
 | 1 / 2 / 3 | Switch theme (desert / castle / space) |
 | ESC | Quit |
 
-## Full Game Example
-
-The included `main.py` is a complete 4895-line platformer game (ChronoQuest: Fractures in Time) that uses these same procedural generation techniques for its three themed levels. Run it to see the generator in action inside a real game:
-
-```bash
-python main.py
-```
-
 ## Project Structure
 
 ```
 procedural-2d-level-generator/
 │
-├── level_generator.py      # ← THE MODULE — drop this into your project
-├── example_usage.py         # Visual demo with theme switching
-│
-├── main.py                  # Full game using these PCG techniques
-├── game_database.py         # SQLite persistence (used by the full game)
-├── run_game.py              # Auto-installer launcher (used by the full game)
-├── requirements.txt         # pygame
-│
-├── assets/                  # Sprites (used by main.py and example)
-├── data/                    # Runtime data (scores, settings)
-└── logs/                    # Error logs
+├── level_generator.py   # ← THE MODULE — drop this into your project
+├── example_usage.py      # Visual demo with theme switching
+└── README.md             # Documentation
 ```
 
 ## Tuning Generation
