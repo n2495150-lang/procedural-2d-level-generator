@@ -1,199 +1,205 @@
 # Procedural 2D Level Generator
 
-A procedural content generation (PCG) system for 2D platformer games, built in Python with Pygame. Generates entire playable levels — terrain, platforms, hazards, and boss arenas — using randomised pattern selection, constraint-based placement, and theme-driven asset styling.
+A reusable Python module for procedurally generating 2D platformer levels. Drop `level_generator.py` into any Pygame project to instantly get randomised floors, platforms, and hazard placement — no manual level design needed.
 
-## Overview
+## Quick Start
 
-This project demonstrates key procedural generation techniques applied to side-scrolling platformer level design:
+```python
+from level_generator import LevelGenerator
 
-| Technique | Implementation |
-|-----------|---------------|
-| **Pattern-Based Platform Generation** | Six distinct platform patterns (`single`, `double_jump`, `stack`, `staircase`, `gap`, `bridge`) randomly selected and placed |
-| **Constraint-Based Hazard Placement** | Traps positioned using interval spacing with collision-aware overlap prevention |
-| **Theme-Driven Asset Styling** | Three visual themes (Egypt, Medieval, Space) with procedurally generated textures and backgrounds |
-| **Infinite Scrolling World** | Dynamic floor and platform extension as the player moves through the level |
-| **Difficulty Scaling** | Probability-weighted trap density, safe zones, and progressive challenge curves |
-| **Procedural Sprite Generation** | Boss characters and background tiles generated algorithmically when image assets aren't required |
+gen = LevelGenerator(block_size=64, screen_height=768, seed=42)
+level = gen.generate_full_level(level_length=100)
 
-## Procedural Generation Architecture
+for block in level["floor"]:
+    # block.x, block.y, block.size — place your floor tile here
+    ...
 
-### Platform Pattern System (`main.py`, lines ~3360–3460)
+for block in level["platforms"]:
+    # block.x, block.y, block.size — place your platform tile here
+    ...
 
-The generator randomly selects from six platforming patterns, each designed around specific player skill requirements:
-
-```
-single:       ■                    (basic jump)
-double_jump:  ■       ■            (stepping stone → high target)
-stack:        ■  ■                 (progressive climb)
-staircase:    ■  ■  ■             (ascending steps)
-gap:          ■        ■          (precision gap jump)
-bridge:       ■ ■ ■               (rest area / safe zone)
+for trap in level["traps"]:
+    # trap.x, trap.y, trap.trap_type ("spikes" | "fire" | "saw")
+    ...
 ```
 
-Each pattern is parameterised by:
-- `start_x` — horizontal position in world space
-- `block_size` — tile dimensions (default 96px)
-- `screen_height` — vertical reference for placement
-- `style` — theme selector (`egypt` | `medieval` | `space`)
+## How It Works
 
-Platform spacing is randomised (`5–8 blocks`) to prevent repetitive rhythm.
+### Platform Patterns
 
-### Hazard Generation (`main.py`, lines ~3500–3635)
-
-Three trap types are placed using interval-based distribution with collision validation:
-
-| Trap | Interval | Probability | Placement |
-|------|----------|-------------|-----------|
-| **Spikes** | Every 7 blocks | 50% | Floor level |
-| **Fire** | Every 10 blocks | 45% | Floor level, toggling on/off |
-| **Saw** | Every 12 blocks | 40% | Elevated, moving horizontally |
-
-Placement constraints:
-- **Safe zone**: First 3 blocks are always trap-free (tutorial area)
-- **Overlap prevention**: `is_clear()` checks rectangular collision against all existing objects
-- **Double traps**: 35% chance of paired spike placement at wider intervals for challenge variety
-
-### Infinite World Extension (`main.py`, lines ~4155–4180)
-
-As the player moves, the world generates ahead:
+The generator randomly picks from six built-in patterns and places them with randomised spacing:
 
 ```
-extend_floor()      — Appends floor blocks when player approaches the edge
-extend_platforms()   — Generates new platform clusters within view distance
+single:       ■                    Basic jump
+double_jump:  ■       ■            Stepping stone to high target  
+stack:        ■  ■                 Progressive climb
+staircase:    ■  ■  ■             Ascending steps
+gap:          ■        ■          Precision gap jump
+bridge:       ■ ■ ■               Rest area / safe zone
 ```
 
-Both functions enforce a hard `max_x` boundary to ensure finite, completable levels.
+### Hazard Placement
 
-### Theme System
+Traps are placed at regular intervals with:
+- **Collision checking** — never overlaps existing platforms
+- **Probability control** — each trap type has a spawn chance (0–1)
+- **Safe zones** — configurable trap-free area at level start
+- **Three types**: spikes (static), fire (floor), saw (elevated/moving)
 
-Each theme provides a complete visual identity through procedural generation:
+### Infinite Scrolling
 
-**Ancient Egypt** (`create_egypt_background`)
-- Sandy colour palette with gradient blending
-- Procedurally drawn hieroglyphic-style decorations
-- Sandstone block textures with crack details
+For endless or very long levels, generate content on-demand as the player moves:
 
-**Medieval Europe** (`create_medieval_background`)
-- Cobblestone pattern generation with mortar lines
-- Grey-brown stone palette with lighting variation
-- Castle wall aesthetic with randomised stone shapes
+```python
+gen = LevelGenerator(block_size=64, screen_height=768)
 
-**Outer Space** (`get_space_background`)
-- Star field generation with varied brightness
-- Dark void colour scheme with metallic platform tiles
-- Nebula-style colour gradients
+# In your game loop:
+new_blocks, floor_edge = gen.extend_floor(player.x, floor_edge, max_x)
+new_platforms, platform_edge = gen.extend_platforms(player.x, platform_edge, max_x)
+```
+
+## API Reference
+
+### `LevelGenerator(block_size, screen_height, style, seed)`
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `block_size` | int | 96 | Tile size in pixels (square) |
+| `screen_height` | int | 800 | World height in pixels |
+| `style` | str | "default" | Theme tag passed to generated objects |
+| `seed` | int/None | None | Random seed for reproducible levels |
+
+### Methods
+
+**`generate_floor(start_col, end_col)`** → `list[BlockInfo]`
+
+Generate a row of floor tiles from column `start_col` to `end_col`.
+
+**`generate_platforms(start_x, end_x, spacing_range, patterns)`** → `list[BlockInfo]`
+
+Generate platform clusters. `spacing_range` controls gap between clusters (default 5–8 blocks). `patterns` lets you limit which patterns are used.
+
+**`generate_traps(end_x, existing_objects, ...)`** → `list[TrapInfo]`
+
+Place hazards with collision avoidance. Configurable intervals, probabilities, safe zone size, and trap dimensions.
+
+**`generate_full_level(level_length, ...)`** → `dict`
+
+Convenience method — generates floor + platforms + traps in one call. Returns:
+```python
+{
+    "floor": [...],      # list[BlockInfo]
+    "platforms": [...],  # list[BlockInfo]
+    "traps": [...],      # list[TrapInfo]
+    "end_x": 9600,       # int — rightmost boundary
+}
+```
+
+**`extend_floor(player_x, floor_edge, max_x)`** → `(list[BlockInfo], int)`
+
+For infinite scrolling — generates floor ahead of the player.
+
+**`extend_platforms(player_x, last_platform_x, max_x, ...)`** → `(list[BlockInfo], int)`
+
+For infinite scrolling — generates platform clusters ahead of the player.
+
+### Data Objects
+
+**`BlockInfo`** — describes a platform/floor tile
+- `.x`, `.y`, `.size`, `.style`, `.rect`
+
+**`TrapInfo`** — describes a hazard
+- `.x`, `.y`, `.width`, `.height`, `.trap_type`, `.move_range`, `.rect`
+
+### Custom Patterns
+
+Register your own platform patterns:
+
+```python
+from level_generator import register_pattern, BlockInfo
+
+def pyramid(start_x, block_size, ground_y, style):
+    blocks = []
+    for row in range(3):
+        for col in range(3 - row):
+            x = start_x + col * block_size + row * block_size // 2
+            y = ground_y - block_size * (row + 2)
+            blocks.append(BlockInfo(x, y, block_size, style))
+    return blocks
+
+register_pattern("pyramid", pyramid)
+```
+
+Now `"pyramid"` will appear in the random selection alongside the built-in patterns.
+
+## Running the Demo
+
+The visual demo lets you scroll through a generated level and switch themes:
+
+```bash
+pip install pygame
+python example_usage.py
+```
+
+| Key | Action |
+|-----|--------|
+| ← → | Scroll camera |
+| R | Regenerate (new random seed) |
+| 1 / 2 / 3 | Switch theme (desert / castle / space) |
+| ESC | Quit |
+
+## Full Game Example
+
+The included `main.py` is a complete 4895-line platformer game (ChronoQuest: Fractures in Time) that uses these same procedural generation techniques for its three themed levels. Run it to see the generator in action inside a real game:
+
+```bash
+python main.py
+```
 
 ## Project Structure
 
 ```
 procedural-2d-level-generator/
 │
-├── main.py                     # Core engine (4895 lines)
-│   ├── Platform Generation     # PCG pattern system (lines ~3360-3460)
-│   ├── Hazard Placement        # Constraint-based trap generation (lines ~3500-3635)
-│   ├── World Extension         # Infinite scrolling generation (lines ~4155-4180)
-│   ├── Theme Renderers         # Procedural background/texture generation (lines ~1080-1290)
-│   ├── Boss Arena Generation   # End-of-level boss area setup (lines ~4280-4310)
-│   ├── Collision System        # Physics & collision detection (lines ~3640-3780)
-│   ├── Player Physics          # Movement, gravity, double jump (lines ~1270-1580)
-│   └── Game Loop               # Level execution & progression (lines ~4200-4480)
+├── level_generator.py      # ← THE MODULE — drop this into your project
+├── example_usage.py         # Visual demo with theme switching
 │
-├── game_database.py            # SQLite persistence — session tracking, settings, logging
-├── run_game.py                 # Auto-installer and launcher
-├── requirements.txt            # Dependencies (pygame)
-├── INSTALL.bat                 # One-click Windows setup
+├── main.py                  # Full game using these PCG techniques
+├── game_database.py         # SQLite persistence (used by the full game)
+├── run_game.py              # Auto-installer launcher (used by the full game)
+├── requirements.txt         # pygame
 │
-├── assets/                     # Sprite assets for characters, terrain, traps, items
-├── data/                       # Runtime data (scores, stats, settings)
-└── logs/                       # Error and event logs
+├── assets/                  # Sprites (used by main.py and example)
+├── data/                    # Runtime data (scores, settings)
+└── logs/                    # Error logs
 ```
 
-## Key Algorithms
+## Tuning Generation
 
-### Pattern Selection & Placement
-```python
-pattern = random.choice(['single', 'double_jump', 'stack', 'staircase', 'gap', 'bridge'])
-```
-Uniform random selection ensures equal probability for each pattern type. Patterns are placed with randomised horizontal spacing (`5–8 block widths`) preventing predictable rhythm.
+Key parameters you can adjust:
 
-### Collision-Aware Trap Placement
-```python
-def is_clear(x, y, width, height):
-    trap_rect = pygame.Rect(x, y, width, height)
-    for obj in objects:
-        if trap_rect.colliderect(obj.rect):
-            return False
-    return True
-```
-Every trap checks for overlap with all existing objects before spawning, preventing impossible-to-navigate configurations.
+| Parameter | Default | Effect |
+|-----------|---------|--------|
+| `block_size` | 96 | Tile dimensions — smaller = more detailed levels |
+| `level_length` | 100 | Level width in blocks |
+| `spacing_range` | (5, 8) | Gap between platform clusters — lower = denser |
+| `spike_interval` | 7 | Blocks between spike spawn attempts |
+| `fire_interval` | 10 | Blocks between fire spawn attempts |
+| `saw_interval` | 12 | Blocks between saw spawn attempts |
+| `spike_chance` | 0.50 | Probability of placing each spike |
+| `fire_chance` | 0.45 | Probability of placing each fire trap |
+| `saw_chance` | 0.40 | Probability of placing each saw |
+| `safe_zone_blocks` | 3 | Trap-free blocks at level start |
+| `seed` | None | Set for reproducible levels |
 
-### Pixel-Perfect Collision Detection
-```python
-if player.rect.colliderect(trap.rect):
-    offset = (trap.rect.x - player.rect.x, trap.rect.y - player.rect.y)
-    if player.mask and player.mask.overlap(trap.mask, offset):
-        return True
-```
-Two-phase collision: fast rectangular pre-check, then precise pixel-mask overlap for accurate hit detection.
+## Requirements
 
-### Dynamic World Streaming
-```python
-while player.rect.right > last_platform_x - view_distance and last_platform_x + block_size * 6 < max_x:
-    platform_blocks = generate_platforming_blocks_at_height(...)
-    objects.extend(platform_blocks)
-    last_platform_x += block_size * random.randint(5, 8)
-```
-Levels generate content on-demand as the player approaches ungenerated regions, bounded by `max_x` for level completion.
+- Python 3.8+
+- pygame
 
-## Running the Generator
-
-### Quick Start
 ```bash
-# Windows — one-click install
-INSTALL.bat
-
-# Manual
 pip install pygame
-python main.py
 ```
-
-### Controls
-| Key | Action |
-|-----|--------|
-| ← → | Move left / right |
-| ↑ | Jump (press again in air for double jump) |
-| ESC | Pause / Menu |
-| 1, 2, 3 | Select level theme |
-
-### System Requirements
-| Requirement | Minimum |
-|-------------|---------|
-| Python | 3.8+ |
-| RAM | 512 MB |
-| Display | 1024×768 |
-
-## Generation Parameters
-
-Key constants that control level generation (tuneable in `main.py`):
-
-| Parameter | Value | Effect |
-|-----------|-------|--------|
-| `block_size` | 96px | Tile dimensions for all terrain |
-| `world_length` | `MAX_WIDTH * 2 / block_size` | Total level length in blocks |
-| Platform spacing | 5–8 blocks (random) | Gap between platform clusters |
-| Spike interval | Every 7 blocks | Base frequency of spike hazards |
-| Fire interval | Every 10 blocks | Base frequency of fire hazards |
-| Saw interval | Every 12 blocks | Base frequency of saw hazards |
-| Safe zone | 3 blocks | Trap-free area at level start |
-| `move_range` (Saw) | 120px | Horizontal oscillation of moving saws |
-
-## Technologies
-
-- **Python 3** — Core language
-- **Pygame** — Rendering, input, audio
-- **SQLite** — Session and statistics persistence
-- **Threading** — Async AI dialogue for boss encounters
-- **Random** — Seeded procedural generation
 
 ## License
 
