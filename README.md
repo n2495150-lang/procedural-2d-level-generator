@@ -1,6 +1,6 @@
 # Procedural 2D Level Generator
 
-A reusable Python module for procedurally generating 2D platformer levels. Drop `level_generator.py` into any Pygame project to instantly get randomised floors, platforms, and hazard placement — no manual level design needed.
+A reusable Python module for procedurally generating 2D platformer levels. Drop `level_generator.py` into any Pygame project to get randomised floors, platforms, and hazard placement. No manual level design needed.
 
 ## Quick Start
 
@@ -31,20 +31,20 @@ The generator randomly picks from six built-in patterns and places them with ran
 
 ```
 single:       ■                    Basic jump
-double_jump:  ■       ■            Stepping stone to high target  
-stack:        ■  ■                 Progressive climb
+double_jump:  ■       ■            base to jump to a higher target
+stack:        ■  ■                 spaced climb
 staircase:    ■  ■  ■             Ascending steps
-gap:          ■        ■          Precision gap jump
-bridge:       ■ ■ ■               Rest area / safe zone
+gap:          ■        ■          gap jump
+bridge:       ■ ■ ■               safe area
 ```
 
 ### Hazard Placement
 
 Traps are placed at regular intervals with:
-- **Collision checking** — never overlaps existing platforms
+- **Collision checking** — prevents overlapping with existing platforms
 - **Probability control** — each trap type has a spawn chance (0–1)
-- **Safe zones** — configurable trap-free area at level start
-- **Three types**: spikes (static), fire (floor), saw (elevated/moving)
+- **Safe zones** — configurable area free of at level start
+- **Three types**: spikes (static), fire (floor), saw (moving)
 
 ### Infinite Scrolling
 
@@ -66,8 +66,8 @@ new_platforms, platform_edge = gen.extend_platforms(player.x, platform_edge, max
 |-----------|------|---------|-------------|
 | `block_size` | int | 96 | Tile size in pixels (square) |
 | `screen_height` | int | 800 | World height in pixels |
-| `style` | str | "default" | Theme tag passed to generated objects |
-| `seed` | int/None | None | Random seed for reproducible levels |
+| `style` | str | "default" |  tag passed to generated objects |
+| `seed` | int/None | None | Random seed for levels |
 
 ### Methods
 
@@ -81,11 +81,11 @@ Generate platform clusters. `spacing_range` controls gap between clusters (defau
 
 **`generate_traps(end_x, existing_objects, ...)`** → `list[TrapInfo]`
 
-Place hazards with collision avoidance. Configurable intervals, probabilities, safe zone size, and trap dimensions.
+Place hazards with collision avoidance. customizable intervals, probabilities, safe zone size, and trap dimensions.
 
 **`generate_full_level(level_length, ...)`** → `dict`
 
-Convenience method — generates floor + platforms + traps in one call. Returns:
+Convenience method: generates floor + platforms + traps in one call. Returns:
 ```python
 {
     "floor": [...],      # list[BlockInfo]
@@ -97,11 +97,11 @@ Convenience method — generates floor + platforms + traps in one call. Returns:
 
 **`extend_floor(player_x, floor_edge, max_x)`** → `(list[BlockInfo], int)`
 
-For infinite scrolling — generates floor ahead of the player.
+For infinite scrolling: generates floor ahead of the player.
 
 **`extend_platforms(player_x, last_platform_x, max_x, ...)`** → `(list[BlockInfo], int)`
 
-For infinite scrolling — generates platform clusters ahead of the player.
+For infinite scrolling: generates platform clusters ahead of the player.
 
 ### Data Objects
 
@@ -153,12 +153,12 @@ python example_usage.py
 ```
 procedural-2d-level-generator/
 │
-├── level_generator.py   # ← THE MODULE — drop this into your project
+├── level_generator.py   # ← The main module
 ├── example_usage.py      # Visual demo with theme switching
 └── README.md             # Documentation
 ```
 
-## Tuning Generation
+## Custom Generation
 
 Key parameters you can adjust:
 
@@ -185,6 +185,4 @@ Key parameters you can adjust:
 pip install pygame
 ```
 
-## License
 
-MIT
