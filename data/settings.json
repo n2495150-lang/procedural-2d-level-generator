@@ -1,0 +1,20 @@
+{
+  "music_volume": 0.5,
+  "sfx_volume": 0.7,
+  "music_enabled": true,
+  "sfx_enabled": true,
+  "fullscreen": false,
+  "window_width": 1536,
+  "window_height": 864,
+  "show_fps": false,
+  "difficulty": "normal",
+  "player_lives": 3,
+  "last_level_played": 1,
+  "tutorials_enabled": true,
+  "jump_key": "up",
+  "move_left_key": "left",
+  "move_right_key": "right",
+  "test_setting": "test_value",
+  "test_number": 42,
+  "test_bool": true
+}
