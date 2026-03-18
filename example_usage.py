@@ -130,16 +130,21 @@ def draw_trap(surface, trap, palette, camera_x):
         pygame.draw.rect(surface, colour, rect)
 
 
-def draw_sky_gradient(surface, top_colour, bottom_colour):
-    """Fill the screen with a vertical gradient."""
-    w, h = surface.get_size()
+def create_sky_gradient(size, top_color, bottom_color):
+    """Creates a gradient surface once, rather than drawing every single frame."""
+    w, h = size
+    # Create a 1-pixel wide surface that is as tall as the screen
+    gradient_surface = pygame.Surface((1,h))
     for y in range(h):
-        ratio = y / h
-        r = int(top_colour[0] + (bottom_colour[0] - top_colour[0]) * ratio)
-        g = int(top_colour[1] + (bottom_colour[1] - top_colour[1]) * ratio)
-        b = int(top_colour[2] + (bottom_colour[2] - top_colour[2]) * ratio)
-        pygame.draw.line(surface, (r, g, b), (0, y), (w, y))
+        ratio = y/h
+        r = int(top_color[0] + (bottom_color[0] - top_color[0]) * ratio)
+        g = int(top_color[1] + (bottom_color[1] - top_color[1]) * ratio)
+        b = int(top_color[2] + (bottom_color[2] - top_color[2]) * ratio)
+        # Draw a pixel dot/line on the tiny surface
+        pygame.draw.line(gradient_surface, (r, g, b), (0, y), (1, y))
 
+    #Scale the pixel to fill the custom width and height
+    return pygame.transform.scale(gradient_surface, (w, h))
 
 # =============================================================================
 #  HUD
@@ -176,6 +181,11 @@ def main():
 
     camera_x = 0
     running = True
+    #Create teh bg image before the loop starts
+    bg_surface = create_sky_gradient(screen.get_size(), palette["sky"], palette["bg"])
+
+    camera_x = 0
+    running = True
 
     while running:
         # --- events ---
@@ -198,6 +208,9 @@ def main():
                 elif event.key == pygame.K_3:
                     theme_name = "space"
                     level, palette = build_level(theme_name, seed=seed_val)
+                elif event.type == pygame.VIDEORESIZE:
+                    # Render bg iamge again if screen size changes
+                    bg_surface = create_sky_gradient(screen.get_size(), palette["sky"], palette["bg])
 
         # --- scroll ---
         keys = pygame.key.get_pressed()
@@ -207,8 +220,9 @@ def main():
             camera_x = max(0, camera_x - SCROLL_SPEED)
 
         # --- draw ---
-        draw_sky_gradient(screen, palette["sky"], palette["bg"])
-
+        #stamps image onto the screen
+        screen.blit(bg_surface, (0,0))
+        
         for block in level["floor"]:
             draw_block(screen, block, palette, camera_x, is_floor=True)
         for block in level["platforms"]:
